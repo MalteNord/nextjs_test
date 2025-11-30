@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Move-Item \"C:\\Dev\\nextjs_test\\src\\middleware.ts\" \"C:\\Dev\\nextjs_test\\src\\proxy.ts\")",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
