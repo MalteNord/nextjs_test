@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { loginAction } from '@/lib/auth';
+import { loginAction } from '@/lib/actions';
 
 /**
  * Login Form - Client Component

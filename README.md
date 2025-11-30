@@ -61,30 +61,31 @@ The Header component is marked as `'use client'` but it doesn't need any client-
 **Current Problem:**
 The PostsList component uses client-side data fetching with `useEffect`, which:
 - Loses SSR benefits
-- Can't properly access HttpOnly cookies
+- Can't properly access HttpOnly cookies (you'll see "Failed to fetch posts" error)
 - Causes unnecessary loading states
 
 **Issues to Fix:**
 - [ ] Convert to a Server Component (remove `'use client'`)
-- [ ] Use `getPosts()` from `lib/data.ts` instead of `getPostsClientSide()`
+- [ ] Create a proper `getPosts()` function in `lib/data-server.ts` that fetches server-side with auth
 - [ ] Remove all React hooks (`useState`, `useEffect`)
 - [ ] Remove `console.error` statement
 - [ ] Make the component async
 
-**Hint:** The component should look similar to `WelcomeSection.tsx`.
+**Hint:** The component should look similar to `WelcomeSection.tsx`. Look at how `getWelcomeData()` in `lib/data-server.ts` uses `'use cache'`.
 
 ---
 
 ### Task 3: Implement Cache Revalidation (Bonus)
 
 **Current State:**
-The data fetching functions in `lib/data.ts` use `cacheTag()` but there's no way to revalidate the cache.
+The data fetching functions use `cacheTag()` but there's no way to refresh/clear the cache.
 
-**Task:**
-- [ ] Create a Server Action that uses `updateTag('posts')` to refresh post data
-- [ ] Add a "Refresh Data" button to the dashboard that triggers this action
+**Tasks:**
+- [ ] Add `revalidateTag('posts', '/')` to `logoutAction` in `lib/actions.ts` to clear cached posts on logout
+- [ ] Create a Server Action that uses `updateTag('posts')` to refresh post data (keeps cache warm)
+- [ ] Add a "Refresh Data" button to the dashboard that triggers the refresh action
 
-**Hint:** Look at `updateTag` from `next/cache`.
+**Hint:** Use `revalidateTag` to CLEAR cache (invalidate), use `updateTag` to REFRESH cache (re-fetch in background).
 
 ---
 
@@ -148,8 +149,10 @@ nextjs_test/
 │   ├── WelcomeSection.tsx        # ✓ Reference implementation
 │   └── WelcomeSkeleton.tsx       # ✓ Correct
 ├── lib/
-│   ├── auth.ts                   # Auth utilities & Server Actions
-│   └── data.ts                   # Data fetching functions
+│   ├── actions.ts                # Server Actions (login, logout)
+│   ├── auth.ts                   # Auth utilities (getCurrentUser)
+│   ├── data.ts                   # Types & client-side fetch (wrong pattern)
+│   └── data-server.ts            # Server-side data fetching (correct pattern)
 ├── proxy.ts                      # Route protection (Next.js 16)
 ├── next.config.ts
 ├── package.json
@@ -186,7 +189,7 @@ nextjs_test/
 
 ## Correct Patterns (Reference)
 
-### Server-side Data Fetching (lib/data.ts)
+### Server-side Data Fetching (lib/data-server.ts)
 ```typescript
 export async function getWelcomeData(): Promise<WelcomeData> {
   'use cache';
@@ -194,6 +197,23 @@ export async function getWelcomeData(): Promise<WelcomeData> {
   cacheTag('welcome');
 
   const response = await fetch(`${getBaseUrl()}/api/data/welcome`);
+  return response.json();
+}
+```
+
+### Server-side Data Fetching with Auth (example for getPosts)
+```typescript
+export async function getPosts(): Promise<{ posts: Post[]; fetchedAt: string }> {
+  'use cache: private';  // Use 'private' when using cookies
+  cacheLife('minutes');
+  cacheTag('posts');
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+
+  const response = await fetch(`${getBaseUrl()}/api/data/posts`, {
+    headers: { Cookie: `auth-token=${token}` },
+  });
   return response.json();
 }
 ```
@@ -217,7 +237,7 @@ export async function WelcomeSection() {
 'use client';
 
 import { useActionState } from 'react';
-import { loginAction } from '@/lib/auth';
+import { loginAction } from '@/lib/actions';
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { logoutAction } from '@/lib/auth';
+import { logoutAction } from '@/lib/actions';
 
 /**
  * Logout Button - Client Component

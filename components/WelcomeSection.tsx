@@ -1,4 +1,4 @@
-import { getWelcomeData } from '@/lib/data';
+import { getWelcomeData } from '@/lib/data-server';
 
 /**
  * Welcome Section - Server Component
