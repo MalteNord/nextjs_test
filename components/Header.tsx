@@ -11,10 +11,8 @@
  *
  * TODO for candidates: Convert this to a Server Component
  */
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getCurrentUser } from '@/lib/auth';
 
 interface User {
   id: string;
@@ -23,29 +21,8 @@ interface User {
   role: string;
 }
 
-export function Header() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // WRONG: Client-side fetching for user data
-  // This won't work with HttpOnly cookies in a real scenario!
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.log('Not authenticated'); // WRONG: console.log in production
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchUser();
-  }, []);
+export async function Header() {
+  const user = await getCurrentUser();
 
   return (
     <header className="header">
@@ -57,9 +34,7 @@ export function Header() {
         <nav className="header-nav">
           <Link href="/">Home</Link>
 
-          {loading ? (
-            <span>Loading...</span>
-          ) : user ? (
+        {user ? (
             <>
               <Link href="/dashboard">Dashboard</Link>
               <div className="user-info">

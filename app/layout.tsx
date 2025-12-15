@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
+import { HeaderSkeleton } from '@/components/HeaderSkeleton';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Next.js Code Test',
@@ -23,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Header />
+        <Suspense fallback={<HeaderSkeleton />} >
+          <Header />
+        </Suspense>
         <main className="container">{children}</main>
       </body>
     </html>

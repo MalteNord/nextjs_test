@@ -1,5 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache';
 import type { WelcomeData } from './data';
+import { Post } from './data';
+import { cookies } from 'next/headers';
 
 /**
  * Get the base URL for API requests.
@@ -29,4 +31,36 @@ export async function getWelcomeData(): Promise<WelcomeData> {
   }
 
   return response.json();
+}
+
+/* get cached posts */
+async function getPostsCached(authToken: string | null): Promise<{
+  posts: Post[];
+  fetchedAt: string;
+}> {
+  'use cache';
+
+  cacheLife('minutes');
+  cacheTag('posts');
+
+  const response = await fetch(`${getBaseUrl()}/api/data/posts`, {
+    headers: authToken ? { Cookie: `auth-token=${authToken}` } : {},
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch posts');
+  }
+  
+  const json = await response.json();
+  return {
+    posts: Array.isArray(json.posts) ? json.posts : json, 
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+export async function getPosts() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('auth-token')?.value ?? null;
+
+  return getPostsCached(authToken);
 }
