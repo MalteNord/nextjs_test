@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { revalidateTag, updateTag, revalidatePath } from 'next/cache';
 
 /**
  * Get the base URL for API requests.
@@ -38,6 +39,7 @@ export async function loginAction(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      credentials: 'include', // Include cookies in the request
     });
 
     if (!response.ok) {
@@ -73,9 +75,39 @@ export async function loginAction(
 /**
  * Server Action for logout
  *
- * TODO for candidates: Should this clear any cached data?
+ * - Clears posts cache to ensure fresh data on next login
+ * - Uses revalidateTag to invalidate cache entries
+ * - Revalidates the home page
  */
 export async function logoutAction(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete('auth-token');
+  
+  // Clear cached posts on logout
+  revalidateTag('posts', 'max');
+  
+  // Revalidate all paths to clear any cached authentication state
+  revalidateTag('auth', 'max');
+  
+  // Revalidate critical paths to ensure fresh data on next login
+  revalidatePath('/dashboard', 'page');
+  revalidatePath('/login', 'page');
+  revalidatePath('/', 'layout');
+}
+
+/**
+ * Server Action to refresh posts data
+ *
+ * - Uses updateTag to refresh cache in background
+ * - Keeps cache warm while fetching fresh data
+ */
+export async function refreshPostsAction(): Promise<{ success: boolean }> {
+  try {
+    // Refresh the posts cache in the background
+    updateTag('posts');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to refresh posts:', error);
+    return { success: false };
+  }
 }

@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache';
-import type { WelcomeData } from './data';
+import { cookies } from 'next/headers';
+import type { WelcomeData, Post } from './data';
 
 /**
  * Get the base URL for API requests.
@@ -29,4 +30,48 @@ export async function getWelcomeData(): Promise<WelcomeData> {
   }
 
   return response.json();
+}
+
+/**
+ * Internal cached function to fetch posts with token
+ *
+ * - 'use cache' directive with cacheLife and cacheTag
+ * - Separates dynamic data (cookies) from cached logic
+ * - Token is passed as parameter (read outside cache scope)
+ */
+async function fetchPostsWithToken(token: string): Promise<{ posts: Post[]; fetchedAt: string }> {
+  'use cache';
+  cacheLife('minutes'); 
+  cacheTag('posts');
+
+  const response = await fetch(`${getBaseUrl()}/api/data/posts`, {
+    headers: {
+      Cookie: `auth-token=${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch posts');
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch posts data (requires authentication)
+ *
+ * - Separate dynamic data from cached functions
+ * - Reads cookies outside the cache scope
+ * - Passes token to cached function as parameter
+ * - Server-side data fetching with access to HttpOnly cookies
+ */
+export async function getPosts(): Promise<{ posts: Post[]; fetchedAt: string }> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  return fetchPostsWithToken(token);
 }

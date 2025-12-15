@@ -29,6 +29,7 @@ export async function getCurrentUser(): Promise<User | null> {
         Cookie: `auth-token=${token}`,
       },
       cache: 'no-store', // Don't cache auth requests
+      next: { tags: ['auth'] }, // Add tag for cache revalidation
     });
 
     if (!response.ok) {

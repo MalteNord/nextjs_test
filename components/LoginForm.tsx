@@ -22,10 +22,11 @@ export function LoginForm() {
   // Redirect on successful login
   useEffect(() => {
     if (state?.success) {
+      // Clear any cached data and navigate
       router.push('/dashboard');
       router.refresh(); // Refresh to update server components
     }
-  }, [state?.success, router]);
+  }, [state, router]);
 
   return (
     <form action={formAction}>
